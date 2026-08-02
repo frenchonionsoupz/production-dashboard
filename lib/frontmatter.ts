@@ -36,10 +36,17 @@ export async function listMarkdownFiles(dir: string): Promise<string[]> {
 export async function readVaultFile(filePath: string): Promise<VaultFile> {
   const raw = await fs.readFile(filePath, "utf8");
   const parsed = matter(raw);
+  const data = parsed.data as Frontmatter;
+
+  // YAML parses unquoted "date: 2026-08-02" as a Date, not a string.
+  if (data.date && typeof data.date !== "string") {
+    data.date = (data.date as unknown as Date).toISOString().slice(0, 10);
+  }
+
   return {
     path: filePath,
     filename: path.basename(filePath),
-    data: parsed.data as Frontmatter,
+    data,
     content: parsed.content.trim(),
   };
 }

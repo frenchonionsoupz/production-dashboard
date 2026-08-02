@@ -38,3 +38,22 @@ export async function appendLogEntry(entry: {
   const existing = await readLogOverview();
   await fs.writeFile(LOG_OVERVIEW_PATH, existing.trimEnd() + "\n\n" + block, "utf8");
 }
+
+/** Appends a `> Correction:` line under the entry whose "Filed to:" matches
+ * filedTo, so it lands right where the agent will see it on its next read.
+ * Returns false if no matching entry was found. */
+export async function appendCorrection(filedTo: string, comment: string): Promise<boolean> {
+  const full = await readLogOverview();
+  const marker = `- Filed to: ${filedTo}`;
+  const markerIndex = full.indexOf(marker);
+  if (markerIndex === -1) return false;
+
+  const nextHeaderIndex = full.indexOf("\n## ", markerIndex);
+  const insertAt = nextHeaderIndex === -1 ? full.length : nextHeaderIndex;
+  const before = full.slice(0, insertAt).replace(/\s+$/, "");
+  const after = full.slice(insertAt);
+
+  const updated = `${before}\n> Correction: ${comment}\n${after}`;
+  await fs.writeFile(LOG_OVERVIEW_PATH, updated, "utf8");
+  return true;
+}
