@@ -5,8 +5,9 @@ import { Toolbar } from "./components/Toolbar";
 import { WipsView } from "./components/WipsView";
 import { InboxView } from "./components/InboxView";
 import { LogsView } from "./components/LogsView";
+import { ChatPanel } from "./components/ChatPanel";
 
-type Tab = "wips" | "inbox" | "logs";
+type Tab = "wips" | "inbox" | "logs" | "chat";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("inbox");
@@ -48,6 +49,7 @@ export default function Home() {
     { key: "inbox", label: "Inbox" },
     { key: "wips", label: "WIPs" },
     { key: "logs", label: "Logs" },
+    { key: "chat", label: "Chat" },
   ];
 
   return (
@@ -75,6 +77,7 @@ export default function Home() {
         {tab === "wips" && <WipsView refreshKey={refreshKey} />}
         {tab === "inbox" && <InboxView refreshKey={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />}
         {tab === "logs" && <LogsView refreshKey={refreshKey} />}
+        {tab === "chat" && <ChatPanel />}
       </main>
     </div>
   );
