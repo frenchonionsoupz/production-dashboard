@@ -4,7 +4,23 @@ import { INBOX_RAW_DIR, INBOX_DIR, LOGS_DIR } from "./vault";
 import { readVaultDir, writeVaultFile } from "./frontmatter";
 import { appendLogEntry, readRecentEntries } from "./log-overview";
 import { runProductionManager } from "./claude-headless";
+import { search } from "./index-store";
 import { slugify } from "./slugify";
+
+/** Best-effort: the index may not be built yet (first run, or the local
+ * embedding model hasn't downloaded), so a failure here just means Claude
+ * falls back to its own Glob/Grep exploration for linking. */
+async function getCandidateLinksText(transcript: string): Promise<string> {
+  try {
+    const results = await search(transcript, 5);
+    if (results.length === 0) return "";
+    return results
+      .map((r) => `- ${r.path} ("${r.title}", tags: ${r.tags.join(", ") || "none"})\n  "${r.text.slice(0, 200)}..."`)
+      .join("\n");
+  } catch {
+    return "";
+  }
+}
 
 export type ProcessSummary = {
   processed: { rawFile: string; filedTo: string; tags: string[] }[];
@@ -54,8 +70,11 @@ export async function processInboxRaw(): Promise<ProcessSummary> {
 
     try {
       const transcript = await fs.readFile(path.join(INBOX_RAW_DIR, rawFile), "utf8");
-      const recentLog = await readRecentEntries();
-      const result = await runProductionManager(rawFile, transcript, recentLog);
+      const [recentLog, candidateLinks] = await Promise.all([
+        readRecentEntries(),
+        getCandidateLinksText(transcript),
+      ]);
+      const result = await runProductionManager(rawFile, transcript, recentLog, candidateLinks);
 
       const date = new Date().toISOString().slice(0, 10);
       const filename = `${date}-${slugify(result.title)}.md`;

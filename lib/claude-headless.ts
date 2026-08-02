@@ -37,7 +37,12 @@ const RESULT_SCHEMA = {
   additionalProperties: false,
 };
 
-function buildPrompt(filename: string, transcript: string, recentLog: string): string {
+function buildPrompt(
+  filename: string,
+  transcript: string,
+  recentLog: string,
+  candidateLinks: string
+): string {
   return `A new voice-memo transcript landed in Inbox-Raw/. Process it per your job
 description in CLAUDE.md (tagging rules, linking, and how to use
 log-overview.md corrections).
@@ -49,6 +54,13 @@ Recent log-overview.md entries (read for corrections/lessons before you tag):
 ${recentLog || "(no entries yet)"}
 ---
 
+Vector-index candidates that may be related (from semantic search over
+WIPs/, Logs/, and Finalized/ — verify before using, these are hints, not
+answers):
+---
+${candidateLinks || "(index not built yet, or no close matches — use Glob/Grep to check yourself)"}
+---
+
 Transcript content:
 ---
 ${transcript}
@@ -56,8 +68,9 @@ ${transcript}
 
 Before deciding tags and linked_to, use your Read/Glob/Grep tools to check
 existing frontmatter in WIPs/, Logs/, and Finalized/ for reusable tags and
-related pieces. Respond with ONLY the JSON object described by the schema —
-no extra commentary.`;
+related pieces — the candidates above are a starting point, not a
+substitute for checking. Respond with ONLY the JSON object described by the
+schema — no extra commentary.`;
 }
 
 /** Runs one Inbox-Raw transcript through the Production Manager (Mode A),
@@ -66,9 +79,10 @@ no extra commentary.`;
 export async function runProductionManager(
   filename: string,
   transcript: string,
-  recentLog: string
+  recentLog: string,
+  candidateLinks: string
 ): Promise<ProcessorResult> {
-  const prompt = buildPrompt(filename, transcript, recentLog);
+  const prompt = buildPrompt(filename, transcript, recentLog, candidateLinks);
 
   const { stdout } = await execFileAsync(
     "claude",
